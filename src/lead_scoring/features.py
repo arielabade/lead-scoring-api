@@ -27,7 +27,20 @@ def prepare(frame: pd.DataFrame) -> pd.DataFrame:
     return prepared
 
 
-def align_categories(frame: pd.DataFrame, reference: pd.DataFrame) -> pd.DataFrame:
+def category_map(frame: pd.DataFrame) -> dict[str, list[str]]:
+    """The training category sets, as plain lists.
+
+    Stored with the model instead of a reference DataFrame. A DataFrame drags
+    pandas' internal representation into the pickle — under pandas 3 that
+    means the serving image needs pyarrow purely to unpickle an empty frame.
+    A dict of lists is portable and keeps the runtime dependencies honest.
+    """
+    return {column: list(frame[column].cat.categories) for column in CATEGORICAL}
+
+
+def align_categories(
+    frame: pd.DataFrame, categories: dict[str, list[str]], columns: list[str]
+) -> pd.DataFrame:
     """Force a batch to carry the training category sets.
 
     Without this, a request whose `job` is "admin." would be encoded against a
@@ -42,10 +55,9 @@ def align_categories(frame: pd.DataFrame, reference: pd.DataFrame) -> pd.DataFra
     the model falls back to the rest of the lead's features rather than failing.
     """
     aligned = frame.copy()
-    for column in CATEGORICAL:
-        known = reference[column].cat.categories
+    for column, known in categories.items():
         # Blank out unseen values first, so the cast never has to silently
         # discard them (pandas 4 raises on that).
         values = aligned[column].where(aligned[column].isin(known))
         aligned[column] = values.astype(pd.CategoricalDtype(categories=known))
-    return aligned[reference.columns]
+    return aligned[columns]

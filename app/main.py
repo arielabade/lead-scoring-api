@@ -33,7 +33,8 @@ async def lifespan(_: FastAPI):
     if MODEL_PATH.exists():
         bundle = joblib.load(MODEL_PATH)
         state["model"] = bundle["model"]
-        state["reference"] = bundle["feature_frame"]
+        state["categories"] = bundle["categories"]
+        state["columns"] = bundle["columns"]
         # Per-lead decision theory: call when the expected gain clears the cost
         # of the call, i.e. p * value >= cost, i.e. p >= cost / value.
         #
@@ -60,10 +61,7 @@ def _score(leads: list[Lead]) -> list[float]:
     if "model" not in state:
         raise HTTPException(503, "model artifact not loaded; run `python -m lead_scoring.train`")
     frame = pd.DataFrame([lead.model_dump() for lead in leads])
-    for column in state["reference"].columns:
-        if column in frame.columns and str(state["reference"][column].dtype) == "category":
-            frame[column] = frame[column].astype("category")
-    aligned = align_categories(frame, state["reference"])
+    aligned = align_categories(frame, state["categories"], state["columns"])
     return state["model"].predict_proba(aligned)[:, 1].tolist()
 
 

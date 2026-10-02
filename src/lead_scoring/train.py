@@ -27,7 +27,7 @@ from .data import chronological_split, load
 from .evaluate import (
     capacity_value, decile_table, expected_value_curve, optimal_threshold, ranking_metrics,
 )
-from .features import FEATURES, prepare
+from .features import FEATURES, category_map, prepare
 
 ROOT = Path(__file__).resolve().parents[2]
 MODELS = ROOT / "models"
@@ -122,7 +122,12 @@ def train(track: bool = True) -> dict:
     import joblib
 
     joblib.dump(
-        {"model": calibrated, "feature_frame": x_train.iloc[:0], "threshold": decision["threshold"]},
+        {
+            "model": calibrated,
+            "categories": category_map(x_train),
+            "columns": list(x_train.columns),
+            "threshold": decision["threshold"],
+        },
         MODELS / "lead_scoring.joblib",
     )
 
