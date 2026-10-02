@@ -1,0 +1,11 @@
+# Serving only. Training also needs mlflow and matplotlib; the image does not.
+# Pinned to the versions the test suite actually runs against, so the container
+# and the local run cannot drift apart.
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+scikit-learn==1.9.1
+lightgbm==4.7.0
+pandas==3.0.6
+joblib==1.6.0
+numpy==2.4.6
