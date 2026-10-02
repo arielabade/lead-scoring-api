@@ -208,8 +208,17 @@ curl -X POST localhost:8000/score \
 src/lead_scoring/   config (assumptions + leakage rules), data, features, train, evaluate, schema
 app/                FastAPI service
 tests/              leakage rules, evaluation maths, API contract
-.github/workflows/  train, test, build the image, boot it and score through it
 ```
 
-CI trains the model, runs the suite, builds the image, starts the container and scores a lead through
-it — so a green check means the thing actually serves.
+### Continuous integration
+
+A workflow that trains the model, runs the suite, builds the image, starts the container and scores a
+lead through it — so a green check means the service actually serves, not only that unit tests passed
+— is written and verified locally but **not yet committed**: pushing `.github/workflows/` needs a
+token carrying the `workflow` scope.
+
+To enable it:
+
+```bash
+gh auth refresh -h github.com -s workflow
+```
