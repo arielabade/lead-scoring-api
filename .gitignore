@@ -1,0 +1,15 @@
+# Data is downloadable; the model artifact is reproducible from `train`.
+data/raw/
+data/processed/
+models/*.joblib
+mlflow.db
+mlruns/
+
+# reports/ IS committed: the README cites those numbers.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.ipynb_checkpoints/
+.DS_Store
