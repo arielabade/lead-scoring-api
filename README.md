@@ -1,9 +1,4 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/header-dark.svg">
-    <img alt="Lead Scoring API: a deployable lead-scoring service and an honest account of what the model is worth" src="assets/brand/header-light.svg" width="100%">
-  </picture>
-</p>
+<p align="center"><img alt="Lead Scoring API: a deployable lead-scoring service and an honest account of what the model is worth" src="assets/brand/header.svg" width="100%"></p>
 
 <p align="center">
   <img alt="Method stage: scale" src="https://img.shields.io/badge/stage-scale-5B6CFF?style=flat-square&labelColor=050505">
@@ -16,19 +11,9 @@
 0.640.** What survives the two leaks is a 1.54x lift on call ordering: 30% of call capacity reaches
 46% of conversions.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/kpis-dark.svg">
-    <img alt="1.54x call-order lift; honest AUC 0.640; calibrated Brier 0.237" src="assets/brand/kpis-light.svg" width="100%">
-  </picture>
-</p>
+<p align="center"><img alt="1.54x call-order lift; honest AUC 0.640; calibrated Brier 0.237" src="assets/brand/kpis.svg" width="100%"></p>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/arc-dark.svg">
-    <img alt="Context, problem, strategy and result of the case" src="assets/brand/arc-light.svg" width="100%">
-  </picture>
-</p>
+<p align="center"><img alt="Context, problem, strategy and result of the case" src="assets/brand/arc.svg" width="100%"></p>
 
 ---
 
@@ -88,12 +73,7 @@ lift_vs_random_order   = share_of_conversions_captured / share_of_list_called
 
 ## 04 — Result
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/chart-dark.svg">
-    <img alt="Test AUC by setup: random split with duration and macro 0.954, down to 0.640 for the deployable time-split model" src="assets/brand/chart-light.svg" width="100%">
-  </picture>
-</p>
+<p align="center"><img alt="Test AUC by setup: random split with duration and macro 0.954, down to 0.640 for the deployable time-split model" src="assets/brand/chart.svg" width="100%"></p>
 
 Dropping the macro columns **raises** chronological AUC (0.597 → 0.640) and **lowers** random-split
 AUC (0.811 → 0.778). A feature that helps under a random split and hurts under a time split is a time
@@ -188,12 +168,7 @@ notebooks/          leakage exploration
 
 ---
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/track-dark.svg">
-    <img alt="ABADE method: validate, scale, retain, build. This repository: scale" src="assets/brand/track-light.svg" width="100%">
-  </picture>
-</p>
+<p align="center"><img alt="ABADE method: validate, scale, retain, build. This repository: scale" src="assets/brand/track.svg" width="100%"></p>
 
 <p align="center">
   <a href="https://github.com/arielabade">Portfolio</a> &nbsp;·&nbsp;
