@@ -1,67 +1,115 @@
-# Lead Scoring API
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/header-dark.svg">
+    <img alt="Lead Scoring API: a deployable lead-scoring service and an honest account of what the model is worth" src="assets/brand/header-light.svg" width="100%">
+  </picture>
+</p>
 
-A deployable lead-scoring service, and an honest account of what the model is actually worth.
+<p align="center">
+  <img alt="Method stage: scale" src="https://img.shields.io/badge/stage-scale-5B6CFF?style=flat-square&labelColor=050505">
+  <img alt="FastAPI, Docker and MLflow" src="https://img.shields.io/badge/FastAPI-Docker_·_MLflow-7E8791?style=flat-square&labelColor=050505">
+  <img alt="Tests: 18" src="https://img.shields.io/badge/tests-18-7E8791?style=flat-square&labelColor=050505">
+  <img alt="Data: real" src="https://img.shields.io/badge/data-real-C8B680?style=flat-square&labelColor=050505">
+</p>
+
+**This dataset is usually reported at 0.954 AUC. A model that scores leads before dialling gets
+0.640.** What survives the two leaks is a 1.54x lift on call ordering: 30% of call capacity reaches
+46% of conversions.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/kpis-dark.svg">
+    <img alt="1.54x call-order lift; honest AUC 0.640; calibrated Brier 0.237" src="assets/brand/kpis-light.svg" width="100%">
+  </picture>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/arc-dark.svg">
+    <img alt="Context, problem, strategy and result of the case" src="assets/brand/arc-light.svg" width="100%">
+  </picture>
+</p>
 
 ---
 
-## 1. Business problem
+## 01 — Context
 
-A bank's outbound team has more leads than it can call. Each call costs money; each subscription is
-worth more than the call. The team needs an order to work the list in, decided before anyone picks up
-the phone.
+A bank's outbound team has more leads than it can call. Each call costs money, and each subscription
+is worth more than the call.
 
-The modelling question is narrower than it looks: not "who will convert" but "who should be called
-first, using only what is known at dialling time".
+### Data
 
----
-
-## 2. Key results
-
-**The number this dataset is usually reported with is wrong, twice over.**
-
-| Setup | Test AUC |
+| | |
 | --- | --- |
-| Random split, with `duration` and macro features | **0.954** |
-| Random split, no `duration`, with macro | 0.811 |
-| Random split, no `duration`, no macro | 0.778 |
-| Chronological split, with `duration` and macro | 0.728 |
-| Chronological split, no `duration`, with macro | 0.597 |
-| **Chronological split, no `duration`, no macro — the deployable model** | **0.640** |
+| Source | Bank Marketing, UCI Machine Learning Repository ([link](https://archive.ics.uci.edu/dataset/222/bank+marketing)) |
+| Content | Portuguese bank, outbound term-deposit campaigns, May 2008 – Nov 2010 |
+| Size | 41,188 contacts · 20 original features |
+| Split | 26,360 train · 6,590 validation · 8,238 test, **in file order** |
 
-Two separate leaks sit between 0.954 and 0.640:
+**All data is real.** The call economics (£8 per call, £160 per conversion) are declared in
+`config.py`.
 
-**`duration` is the length of the call.** It only exists once the call is over, and a twenty-minute
-call almost always ended in a subscription. It is the single largest driver of inflated results on
-this dataset, and it cannot be used by a model that scores leads *before* dialling.
+**The shift that governs everything:** conversion runs **4.8% in training and 30.8% in test**. The
+campaign ran through the financial crisis, and term deposits became far easier to sell. Four months
+appear only after the training cutoff. The service maps them to a missing category instead of
+failing, and a test covers it.
 
-**The macroeconomic columns are a date in disguise.** `euribor3m` runs 4.08–5.05 in the training
-period and 0.63–1.30 in the test period, with **zero overlap** — the campaign spans the 2008 crisis.
-A tree that learns "euribor above 4 means low conversion" meets nothing but euribor below 1.3 at
-scoring time, and trees cannot extrapolate. Dropping them **raises** chronological AUC from 0.597 to
-0.640 while **lowering** random-split AUC from 0.811 to 0.778. A feature that helps under a random
-split and hurts under a time split is a time proxy, not a signal.
+> The brief originally named Olist's marketing-funnel dataset. It needs Kaggle credentials and has no
+> public mirror. Bank Marketing is a real funnel with a conversion outcome that clones and runs
+> without a login.
 
-They also fail a simpler test: every lead called on the same day shares the same euribor. A feature
-constant across the leads being ranked cannot rank them.
+---
 
-### What the deployable model is worth
+## 02 — Problem
 
-| | AUC | PR-AUC | Brier |
+Not *who will convert*, but *who should be called first, using only what is known at dialling time*.
+
+---
+
+## 03 — Strategy
+
+| Decision | Why |
+| --- | --- |
+| **Drop `duration`** | It is the length of the call, so it exists only after the call. It is the largest driver of inflated results on this dataset. |
+| **Drop macro columns** | `euribor3m` runs 4.08–5.05 in training and 0.63–1.30 in test, with zero overlap. It is a date in disguise, and it is constant across the leads being ranked on any given day. |
+| **Chronological split** | A random split lets the model see the future state of the economy. |
+| **Isotonic calibration on validation** | Scores drive a money calculation, so they must behave like probabilities. |
+| **Keep the logistic baseline** | A model that cannot clearly beat it should say so before carrying an API, a container and CI. |
+| **Break-even gate, not 0.5** | Call when `p × value ≥ cost`. |
+| **MLflow on SQLite** | The smallest backend that still supports the model registry. |
+
+```
+break_even_probability = cost_per_call / value_per_conversion = 8 / 160 = 0.05
+expected_value(call)   = p * value_per_conversion - cost_per_call
+lift_vs_random_order   = share_of_conversions_captured / share_of_list_called
+```
+
+---
+
+## 04 — Result
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/chart-dark.svg">
+    <img alt="Test AUC by setup: random split with duration and macro 0.954, down to 0.640 for the deployable time-split model" src="assets/brand/chart-light.svg" width="100%">
+  </picture>
+</p>
+
+Dropping the macro columns **raises** chronological AUC (0.597 → 0.640) and **lowers** random-split
+AUC (0.811 → 0.778). A feature that helps under a random split and hurts under a time split is a time
+proxy, not a signal.
+
+| Deployable model | AUC | PR-AUC | Brier |
 | --- | --- | --- | --- |
 | LightGBM, calibrated | 0.658 | 0.425 | **0.237** |
 | LightGBM, raw | **0.661** | 0.438 | 0.280 |
 | Logistic regression | 0.643 | **0.443** | 0.264 |
 | Prior (base rate) | 0.500 | 0.308 | 0.281 |
 
-Gradient boosting barely beats logistic regression on ranking. It earns its place on **calibration**:
-Brier 0.237 against 0.264, which matters because the scores drive a dialling decision priced in money,
-not just a sort order.
+Boosting barely beats logistic regression on ranking. It earns its place on **calibration**.
 
-**The decision this supports.** With a call costing £8 and a subscription worth £160, break-even is a
-**5% conversion probability**. The test period's base rate is 30.8%, so *every* lead clears
-break-even — calling everyone is profitable, and the model does not decide who to skip.
-
-What it decides is who goes first, which is the real constraint when capacity is fixed:
+Break-even is a 5% conversion probability, and the test base rate is 30.8%, so every lead clears it.
+The model does not decide *who to skip*. It decides *who goes first*:
 
 | Capacity | Conversions captured | Lift vs random order | Net value |
 | --- | --- | --- | --- |
@@ -70,108 +118,31 @@ What it decides is who goes first, which is the real constraint when capacity is
 | Top 30% | 46.1% | 1.54x | £167,752 |
 | Top 50% | 66.5% | 1.33x | £237,128 |
 
-A team with capacity for 30% of the list reaches 46% of the conversions. That is the business case,
-and it is a long way from what a 0.954 AUC would promise.
+> **Decision.** Work the list in score order. A team with capacity for 30% of the list reaches 46% of
+> conversions, a long way from what a 0.954 AUC would promise.
 
 ---
 
-## 3. Data
+## 05 — Limits and next move
 
-| | |
-| --- | --- |
-| Source | Bank Marketing — UCI Machine Learning Repository ([link](https://archive.ics.uci.edu/dataset/222/bank+marketing)) |
-| Content | Portuguese bank, outbound term-deposit campaigns, May 2008 – Nov 2010 |
-| Size | 41,188 contacts · 20 original features |
-| Split | 26,360 train · 6,590 validation · 8,238 test, **in file order** |
-
-**All data is real. Nothing is simulated.** The declared assumptions are the call economics — £8 per
-call, £160 per conversion — which the dataset does not publish and which live in `config.py`.
-
-> The brief for this project originally named Olist's marketing-funnel dataset. It is only available
-> through Kaggle, which requires credentials, and has no public mirror. Bank Marketing is a real
-> marketing funnel with a conversion outcome, and it clones and runs without a login.
-
-### The shift that governs everything
-
-Conversion runs **4.8% in training and 30.8% in test**. By decile of file order it climbs from 2.8%
-to 45.9%. The campaign ran through the financial crisis, and term deposits became dramatically easier
-to sell. Any single reported "base rate" for this dataset is an average over two different worlds.
-
-Four months — March, April, September, December — appear **only** after the training cutoff. They are
-valid business inputs the model has never seen; the service maps them to a missing category and falls
-back on the lead's other features rather than failing. There is a test for it.
-
----
-
-## 4. Approach
-
-**Chronological split, not random.** The file is ordered by campaign date. A random split lets the
-model see the future state of the economy, and is the reason offline scores on this dataset are
-routinely optimistic.
-
-**Isotonic calibration, fitted on validation.** Scores feed a value calculation, so they must behave
-like probabilities. Calibrating on training data calibrates a model to its own overconfidence, so the
-booster is frozen and the isotonic map is fitted on held-out data.
-
-**A logistic baseline, kept in the report even though it nearly wins.** A model that cannot clearly
-beat logistic regression should not be carrying an API, a container and a CI pipeline without saying
-so. Here boosting justifies itself on calibration, not on ranking — and the README says that rather
-than hiding the baseline.
-
-**Break-even as the per-lead gate, not 0.5.** Call when `p × value ≥ cost`, i.e. `p ≥ cost / value`.
-The 0.5 default is an artefact of balanced-class tutorials and has no business meaning.
-
-**MLflow on SQLite.** The file store is in maintenance mode upstream; a local database is the
-smallest backend that still supports the model registry.
-
----
-
-## 5. Business metrics
-
-```
-break_even_probability = cost_per_call / value_per_conversion      = 8 / 160 = 0.05
-expected_value(call)   = p * value_per_conversion - cost_per_call
-net_value(top K)       = conversions_captured * value - K * cost
-lift_vs_random_order   = share_of_conversions_captured / share_of_list_called
-```
-
-| Assumption | Value | Note |
-| --- | --- | --- |
-| Cost per call | £8 | Agent time, telephony, overhead. |
-| Value per conversion | £160 | Contribution from a term deposit. |
-| Daily capacity | 500 calls | Drives the capacity view. |
-
-Change these in `config.py` and the threshold, the capacity table and the recommendation all move.
-
----
-
-## 6. Limitations and next steps
-
-- **AUC 0.640 is a weak model, and that is the finding.** Without `duration` and without the time
-  proxies, the remaining demographic and campaign-history features carry limited signal. The honest
-  framing is a 1.5x lift on call ordering, not a predictive breakthrough.
-- **The test period is not the deployment period.** Training on 2008–2009 and scoring 2010 is exactly
-  the problem a production model faces, and it is why the model needs retraining on a rolling window
-  rather than a one-off fit. Early stopping at iteration 7 is itself a symptom: the model is kept
-  deliberately shallow because deeper fits do not transfer across the shift.
+- **AUC 0.640 is a weak model, and that is the finding.** The honest framing is a 1.5x lift on
+  ordering, not a predictive breakthrough.
+- **The test period is not the deployment period.** Early stopping at iteration 7 is a symptom: deeper
+  fits do not transfer across the shift.
 - **Call economics are assumed.** At £20 per call, break-even rises to 12.5% and the model starts
-  genuinely excluding leads rather than only ordering them.
-- **No uplift modelling.** This predicts who converts, not who converts *because they were called*.
-  Some high-scoring leads would have subscribed anyway, and calling them adds cost without adding
-  revenue. Separating the two needs an experiment — see
+  excluding leads.
+- **No uplift modelling.** Some high scorers would subscribe anyway. See
   [ab-testing-toolkit](https://github.com/arielabade/ab-testing-toolkit).
-- **Next step:** retrain on a rolling window with time-based validation, and add a monitoring job
-  that alerts when the live score distribution drifts from the training distribution. On this
-  dataset, that alarm would have fired loudly.
+- **Next move:** rolling-window retraining with time-based validation, and a drift monitor on the live
+  score distribution.
 
 ---
 
-## 7. How to run
+## Run it
 
 ```bash
 git clone https://github.com/arielabade/lead-scoring-api
 cd lead-scoring-api
-
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
@@ -180,7 +151,7 @@ pytest                              # 18 tests
 uvicorn app.main:app --reload       # http://localhost:8000/docs
 ```
 
-### Container
+**Container**
 
 ```bash
 docker build -t lead-scoring-api .
@@ -188,7 +159,7 @@ docker run -p 8000:8000 lead-scoring-api
 curl localhost:8000/health
 ```
 
-### Scoring a lead
+**Score a lead**
 
 ```bash
 curl -X POST localhost:8000/score \
@@ -196,29 +167,35 @@ curl -X POST localhost:8000/score \
   -d '{"age":30,"job":"student","marital":"single","education":"university.degree",
        "default":"no","housing":"no","loan":"no","contact":"cellular","month":"mar",
        "day_of_week":"thu","campaign":1,"pdays":3,"previous":2,"poutcome":"success"}'
-
 # {"probability":0.236,"call":true,"priority":"high"}
 ```
 
 `duration` is not in the schema. It cannot be supplied, because at scoring time it does not exist.
 
-### Layout
+**CI.** A workflow that trains, tests, builds the image, starts the container and scores a lead
+through it is written and verified locally but not yet committed. Pushing `.github/workflows/` needs
+the `workflow` token scope: `gh auth refresh -h github.com -s workflow`.
+
+## Repository map
 
 ```
 src/lead_scoring/   config (assumptions + leakage rules), data, features, train, evaluate, schema
 app/                FastAPI service
 tests/              leakage rules, evaluation maths, API contract
+reports/            metrics, deciles, capacity value, expected-value curve
+notebooks/          leakage exploration
 ```
 
-### Continuous integration
+---
 
-A workflow that trains the model, runs the suite, builds the image, starts the container and scores a
-lead through it — so a green check means the service actually serves, not only that unit tests passed
-— is written and verified locally but **not yet committed**: pushing `.github/workflows/` needs a
-token carrying the `workflow` scope.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/track-dark.svg">
+    <img alt="ABADE method: validate, scale, retain, build. This repository: scale" src="assets/brand/track-light.svg" width="100%">
+  </picture>
+</p>
 
-To enable it:
-
-```bash
-gh auth refresh -h github.com -s workflow
-```
+<p align="center">
+  <a href="https://github.com/arielabade">Portfolio</a> &nbsp;·&nbsp;
+  <a href="https://github.com/arielabade/ab-testing-toolkit">Measure what the call actually caused →</a>
+</p>
