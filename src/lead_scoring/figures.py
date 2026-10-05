@@ -143,8 +143,8 @@ def headline(ladder: pd.DataFrame, capacity: pd.DataFrame, metrics: dict):
     published = ladder["test_auc"].max()
     focus = capacity[np.isclose(capacity["share_called"], 0.3)].iloc[0]
     fig, _ = bv.kpi_strip([
-        (f"{published:.3f} → {shipped['test_auc']:.3f}",
-         "Test AUC once the post-call feature\nand the random split are removed"),
+        (f"{shipped['test_auc']:.3f}",
+         f"Test AUC, down from {published:.3f} once the post-call\nfeature and the random split are removed"),
         (f"{focus['lift_vs_random_order']:.2f}x",
          f"Lift on call ordering at {focus['share_called']:.0%} capacity,\nwhat survives honest evaluation"),
         (f"{focus['share_of_conversions']:.0%}",

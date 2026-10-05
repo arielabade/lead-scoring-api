@@ -11,7 +11,7 @@
 0.661.** What survives the two leaks is a 1.54x lift on call ordering: 30% of call capacity reaches
 46% of conversions.
 
-<p align="center"><img alt="Test AUC falls from 0.953 to 0.661 once the post-call feature and the random split are removed; 1.54x call-order lift; 46% of conversions in the first 30% of the list" src="assets/figures/headline.svg" width="100%"></p>
+<p align="center"><img alt="Deployable test AUC 0.661, down from 0.953; 1.54x call-order lift; 46% of conversions in the first 30% of the list" src="assets/figures/headline.svg" width="100%"></p>
 
 <p align="center"><img alt="The same model scored five ways: 0.953 with call duration and a random split, down to 0.661 for the deployable time-split model" src="assets/figures/leakage_ladder.svg" width="100%"></p>
 
