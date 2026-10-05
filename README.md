@@ -8,10 +8,34 @@
 </p>
 
 **This dataset is usually reported at 0.954 AUC. A model that scores leads before dialling gets
-0.640.** What survives the two leaks is a 1.54x lift on call ordering: 30% of call capacity reaches
+0.661.** What survives the two leaks is a 1.54x lift on call ordering: 30% of call capacity reaches
 46% of conversions.
 
-<p align="center"><img alt="1.54x call-order lift; honest AUC 0.640; calibrated Brier 0.237" src="assets/brand/kpis.svg" width="100%"></p>
+<p align="center"><img alt="Test AUC falls from 0.953 to 0.661 once the post-call feature and the random split are removed; 1.54x call-order lift; 46% of conversions in the first 30% of the list" src="assets/figures/headline.svg" width="100%"></p>
+
+<p align="center"><img alt="The same model scored five ways: 0.953 with call duration and a random split, down to 0.661 for the deployable time-split model" src="assets/figures/leakage_ladder.svg" width="100%"></p>
+
+> **Decision.** Work the list in score order. A team with capacity for 30% of the list reaches 46% of conversions — a long way from what a 0.953 AUC would promise.
+
+<details>
+<summary><b>What is in this repository</b></summary>
+
+| | |
+| --- | --- |
+| **The question** | Who should a call centre call first, before anyone dials? |
+| **The data** | UCI Bank Marketing, 41,188 contacts, split chronologically across the 2008 crisis. |
+| **The method** | LightGBM with isotonic calibration, served over FastAPI in a container, with the leakage rules enforced in the schema rather than in a comment. |
+| **The finding** | Most of this dataset's published AUC is evaluation, not model. `lead_scoring.leakage_study` reproduces the whole ladder. |
+
+```
+src/lead_scoring/   config (assumptions + leakage rules), data, features, train, evaluate, schema,
+                    the leakage study, figures
+app/                the FastAPI service
+reports/            the leakage ladder, deciles, capacity value, metrics
+tests/              leakage rules, evaluation maths, API contract
+```
+
+</details>
 
 <p align="center"><img alt="Context, problem, strategy and result of the case" src="assets/brand/arc.svg" width="100%"></p>
 
@@ -69,15 +93,28 @@ expected_value(call)   = p * value_per_conversion - cost_per_call
 lift_vs_random_order   = share_of_conversions_captured / share_of_list_called
 ```
 
+```mermaid
+flowchart LR
+  A["UCI Bank Marketing<br/>row count asserted"] --> B["drop duration<br/>(known only after the call)"]
+  B --> C["chronological split<br/>train / validation / test"]
+  C --> D["LightGBM"]
+  D --> E["isotonic calibration<br/>fitted on validation"]
+  E --> F["FastAPI /score"]
+  C --> G["leakage_study<br/>five evaluation setups"]
+  G --> H["reports/leakage_ladder.csv"]
+  E --> I["reports/ + README figures"]
+  J(["schema rejects<br/>post-call fields"]) -.-> F
+```
+
 ---
 
 ## 04 — Result
 
-<p align="center"><img alt="Test AUC by setup: random split with duration and macro 0.954, down to 0.640 for the deployable time-split model" src="assets/brand/chart.svg" width="100%"></p>
 
-Dropping the macro columns **raises** chronological AUC (0.597 → 0.640) and **lowers** random-split
-AUC (0.811 → 0.778). A feature that helps under a random split and hurts under a time split is a time
-proxy, not a signal.
+Dropping the macro columns **raises** chronological AUC (0.623 → 0.661) and **lowers** random-split
+AUC (0.802 → 0.777). A feature that helps under a random split and hurts under a time split is a time
+proxy, not a signal. Every rung is reproduced by `python -m lead_scoring.leakage_study`, which writes
+[`reports/leakage_ladder.csv`](reports/leakage_ladder.csv).
 
 | Deployable model | AUC | PR-AUC | Brier |
 | --- | --- | --- | --- |
@@ -99,13 +136,19 @@ The model does not decide *who to skip*. It decides *who goes first*:
 | Top 50% | 66.5% | 1.33x | £237,128 |
 
 > **Decision.** Work the list in score order. A team with capacity for 30% of the list reaches 46% of
-> conversions, a long way from what a 0.954 AUC would promise.
+> conversions, a long way from what a 0.953 AUC would promise.
+
+---
+
+<p align="center"><img alt="Share of conversions reached against share of the list called, with random order as the baseline" src="assets/figures/capacity_curve.svg" width="100%"></p>
+
+<p align="center"><img alt="Conversion rate by score decile against the base rate" src="assets/figures/decile_lift.svg" width="100%"></p>
 
 ---
 
 ## 05 — Limits and next move
 
-- **AUC 0.640 is a weak model, and that is the finding.** The honest framing is a 1.5x lift on
+- **AUC 0.661 is a weak model, and that is the finding.** The honest framing is a 1.5x lift on
   ordering, not a predictive breakthrough.
 - **The test period is not the deployment period.** Early stopping at iteration 7 is a symptom: deeper
   fits do not transfer across the shift.

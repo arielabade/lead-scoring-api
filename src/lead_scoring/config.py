@@ -43,9 +43,10 @@ LEAKED_COLUMNS = ("duration",)
 #    euribor < 1.3 at scoring time, and trees cannot extrapolate.
 #
 # Measured effect, chronological split: dropping them RAISES test AUC from
-# 0.597 to 0.640. Under a random split they instead raise it from 0.778 to
-# 0.811, because there they leak which period a row came from. A feature that
+# 0.623 to 0.661. Under a random split they instead raise it from 0.777 to
+# 0.802, because there they leak which period a row came from. A feature that
 # helps under a random split and hurts under a time split is a time proxy.
+# These four numbers are reproduced by `python -m lead_scoring.leakage_study`.
 MACRO_COLUMNS = (
     "emp.var.rate", "cons.price.idx", "cons.conf.idx", "euribor3m", "nr.employed",
 )
